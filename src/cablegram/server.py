@@ -793,8 +793,31 @@ def build(rows_from=None) -> MCPServer:
     # week, never did — a server nobody calls answers nothing. Claude Code
     # lists them as slash commands, so a person can make the call in one
     # line, and any client that supports prompts gets them for free.
+    _EVERYTHING = {"all", "everything", "every", "any", "*", "default"}
+
     def _selectors(sources: str) -> list[str]:
-        return [s.strip() for s in sources.split(",") if s.strip()]
+        # "all" is how a person says the default, and as a selector it matched
+        # nothing: UNKNOWN SELECTOR all, nothing fetched, under a description
+        # that said "default all". Measured 2026-09-13.
+        picked = [s.strip() for s in sources.split(",") if s.strip()]
+        return [] if any(p.lower() in _EVERYTHING for p in picked) else picked
+
+    def _hours(hours: str) -> tuple[int, str]:
+        """The window, and a line for the prompt when the argument was not one.
+
+        int("abc") raised inside the render and the SDK wraps every exception
+        as "Error rendering prompt briefing" with the cause dropped, so the
+        client saw a failure and not why. A prompt that says what happened
+        is the one channel that reaches the model."""
+        try:
+            value = int(str(hours).strip())
+        except ValueError:
+            return 24, (f"(The hours argument {hours!r} is not a whole number of hours; "
+                        f"this briefing uses 24. Say so.)\n")
+        if value < 1:
+            return 24, (f"(The hours argument {hours!r} is under 1; this briefing uses 24. "
+                        f"Say so.)\n")
+        return value, ""
 
     @server.prompt(
         name="briefing",
@@ -806,12 +829,20 @@ def build(rows_from=None) -> MCPServer:
             "languages, comma-separated; default all)."
         ),
     )
-    def briefing(hours: str = "24", sources: str = "") -> str:
+    def briefing(
+        hours: Annotated[str, Field(description=(
+            "Window length in hours, 1 or more. Default 24."))] = "24",
+        sources: Annotated[str, Field(description=(
+            "Ids, tags or languages, comma-separated: 'lab,early' or 'zh'. Empty or "
+            "'all' means every source, which includes six Telegram channels at 20-45 s."))] = "",
+    ) -> str:
         wanted = _selectors(sources)
-        call = f"wire_latest(hours={int(hours)}" + (f", sources={wanted!r}" if wanted else "") + ")"
+        span, note = _hours(hours)
+        call = f"wire_latest(hours={span}" + (f", sources={wanted!r}" if wanted else "") + ")"
         scope = f" across {', '.join(wanted)}" if wanted else " across every source"
         return (
-            f"Brief me on what changed in the last {int(hours)} hours{scope}.\n"
+            note
+            + f"Brief me on what changed in the last {span} hours{scope}.\n"
             f"1. Call {call}. Do not call wire_sources first; the listing says what answered.\n"
             "2. Read the DOWN, SILENT, CEILING and CUT lines before the blocks: they say what "
             "was not covered, and the briefing has to say so too. A CUT that shows a source "
@@ -838,7 +869,10 @@ def build(rows_from=None) -> MCPServer:
             "against what the sources published, and only that. Argument: claim."
         ),
     )
-    def verify(claim: str) -> str:
+    def verify(
+        claim: Annotated[str, Field(description=(
+            "The claim to check, as somebody said it: 'n8n is dead', 'GPT-6 has open weights'."))],
+    ) -> str:
         return (
             f"Check this claim against the sources, and only the sources: \"{claim}\"\n"
             "1. Pick the two or three terms a headline or a body about it would carry, and "

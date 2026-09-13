@@ -910,3 +910,30 @@ async def test_every_parameter_carries_a_description_in_the_schema(server):
     # so "searches the stored text of every source" needed the exception.
     assert "Hacker News holds a body for one item in ten" in search
 
+
+@pytest.mark.anyio
+async def test_a_prompt_argument_that_is_wrong_is_explained_not_thrown(server):
+    """int("abc") raised inside the render, and the SDK wraps every exception
+    as "Error rendering prompt briefing" with the cause dropped, so the
+    client saw a failure and not why; "-5" and "0" rendered calls the tool
+    refuses; and sources="all" — how a person says the default — matched
+    nothing under a description that said "default all". Measured
+    2026-09-13 by the code review. The prompt is the one channel that
+    reaches the model, so it carries the explanation."""
+    def text_of(got):
+        message = got.messages[0]
+        return message.content.text if hasattr(message, "content") else message["content"]["text"]
+
+    for bad in ("abc", "", "1.5", "-5", "0"):
+        text = text_of(await server.get_prompt("briefing", {"hours": bad}))
+        assert "this briefing uses 24" in text and "wire_latest(hours=24)" in text, (bad, text[:160])
+    text = text_of(await server.get_prompt("briefing", {"hours": " 6 ", "sources": "all"}))
+    assert "wire_latest(hours=6)" in text and "every source" in text and "uses 24" not in text, text[:200]
+    text = text_of(await server.get_prompt("briefing", {"sources": "lab, everything"}))
+    assert "wire_latest(hours=24)" in text and "every source" in text, text[:200]
+
+    # And the arguments say what they are, as the tool parameters do.
+    for prompt in await server.list_prompts():
+        for argument in prompt.arguments or []:
+            assert (argument.description or "").strip(), (prompt.name, argument.name)
+
