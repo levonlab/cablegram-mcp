@@ -524,3 +524,25 @@ def test_a_front_page_feed_without_a_stamp_marks_its_entries_rather_than_trustin
     assert [e.published.isoformat()[:10] for e in entries] == ["2026-08-31", "2026-08-07"]
     assert not any(e.date_exact for e in entries), "a fallen-back date is not the day"
 
+
+def test_a_long_body_is_cut_after_the_html_is_stripped_not_before():
+    """The cap fell on the raw HTML: a 16,000-character n8n article kept 4,000
+    characters of markup that stripped down to 3,000 of prose, ending in
+    "font-size: 12px; lette" — measured 2026-09-13 on all fifteen posts of
+    the feed, every one over the cap. The cap now falls on the prose, so the
+    store holds four thousand readable characters and no tag remnant."""
+    from cablegram.rss import MAX_FIELD
+    paragraph = "<p>Workflow automation keeps agents reliable and their actions bounded.</p>"
+    html_body = ('<style>.btn { font-size: 12px; letter-spacing: 1px; }</style>'
+                 + paragraph * 300)
+    feed = f"""<?xml version="1.0"?><rss version="2.0"
+      xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><item>
+      <title>Long post</title><link>https://blog.n8n.example/long</link>
+      <pubDate>Fri, 29 Aug 2026 22:03:11 GMT</pubDate>
+      <content:encoded><![CDATA[{html_body}]]></content:encoded>
+    </item></channel></rss>""".encode()
+    entry = parse_feed(feed)[0]
+    assert len(entry.body) == MAX_FIELD, len(entry.body)
+    assert "<" not in entry.body and "font-size" not in entry.body, entry.body[-80:]
+    assert entry.body.startswith("Workflow automation keeps agents reliable")
+

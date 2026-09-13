@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import __version__
+from .rss import MAX_FIELD
 from .sources import SOURCES, by_id
 from .store import is_down
 
@@ -79,6 +80,16 @@ def _indented(text: str) -> str:
     """
     text = _BREAKS.sub("\n", text.replace("\r\n", "\n"))
     return "   " + text.replace("\n", "\n   ")
+
+
+def _size(body: str) -> str:
+    """`3016c`, or `4000c cut` when the store holds the first MAX_FIELD
+    characters of something longer. Every parser caps at exactly MAX_FIELD,
+    so that length is the mark; unmarked, a body cut mid-sentence read as a
+    short article, and the search that runs over it as a search over the
+    article."""
+    n = len(body)
+    return f"{n}c cut" if n >= MAX_FIELD else f"{n}c"
 
 
 def _oneline(text: str) -> str:
@@ -172,7 +183,7 @@ def _blocks(rows: list[dict], limit_per_source: int | None,
                 # indistinguishable from an item with that id at that time —
                 # to a model reading the payload, and to anything counting it.
                 body = _indented(item["body"])[3:]
-                out.append(f"   [{item.get('body_src', '?')} {len(item['body'])}c] "
+                out.append(f"   [{item.get('body_src', '?')} {_size(item['body'])}] "
                            f"{body}")
     return out, cuts
 
@@ -314,7 +325,7 @@ def render_read(rows: list[dict], *, requested: list[str],
         # The element it came from and its length. Which of those holds a whole
         # article is a property of the source, checked once against its feed —
         # not something a tag name can be asked, in either direction.
-        body = (f" body={row['body_src']} {len(row['body'])}c" if row.get("body")
+        body = (f" body={row['body_src']} {_size(row['body'])}" if row.get("body")
                 else " body=none")
         borrowed = row.get("via") == "link"
         # Every fact on this heading is about the item: who published it, in

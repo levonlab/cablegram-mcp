@@ -687,6 +687,25 @@ def test_a_search_hit_found_in_the_body_is_marked_on_its_row():
     assert "(in body) = the phrase is in the stored text" in out
 
 
+def test_a_body_at_the_cap_is_marked_cut_where_its_length_is_printed():
+    """Every parser caps a body at MAX_FIELD, so a body of exactly that length
+    is the first part of something longer. Unmarked, `body=content:encoded
+    4000c` read as a four-thousand-character article, and a search over the
+    body as a search over the article. The mark travels with the length in
+    the read heading and in the full-detail listing."""
+    from cablegram.rss import MAX_FIELD
+    cut = {**ROW, "id": "a" * 12, "body": "x" * MAX_FIELD, "body_src": "content:encoded",
+           "sources": "n8n"}
+    whole = {**ROW, "id": "b" * 12, "body": "y" * 300, "body_src": "content:encoded",
+             "sources": "n8n"}
+    out = render_read([cut, whole], requested=["a" * 12, "b" * 12])
+    assert f"body=content:encoded {MAX_FIELD}c cut" in out, out.splitlines()[:4]
+    assert "body=content:encoded 300c\n" in out + "\n" or "body=content:encoded 300c " in out, out
+    listing = render_latest([{**cut, "source": "n8n"}], since="s", until="u", down={},
+                            sources_total=1, detail="full")
+    assert f"[content:encoded {MAX_FIELD}c cut]" in listing, listing
+
+
 def _many(n: int, source: str = "hn") -> list[dict]:
     """Rows as the query hands them over: newest first within a source. The
     renderer trusts that order — the trim keeps the first N — so a fixture

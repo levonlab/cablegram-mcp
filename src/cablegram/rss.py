@@ -195,9 +195,21 @@ _BODY_ELEMENTS = (
 )
 
 
+def _raw(node: ET.Element | None) -> str:
+    """The element's text, whole. `_text` caps at MAX_FIELD before anything
+    else, which is right for a title and wrong for a body: the cap fell on the
+    raw HTML, so a 16,000-character article kept 4,000 characters of markup
+    that stripped down to 3,000 of prose ending in "font-size: 12px; lette".
+    Measured 2026-09-13 on all fifteen n8n posts. The cap belongs after the
+    tags are gone, in _strip_html."""
+    if node is None:
+        return ""
+    return unicodedata.normalize("NFC", "".join(node.itertext()))
+
+
 def _body(item: ET.Element) -> tuple[str | None, str | None]:
     for path, name in _BODY_ELEMENTS:
-        if text := _strip_html(_text(item.find(path))):
+        if text := _strip_html(_raw(item.find(path))):
             return text, name
     return None, None
 
