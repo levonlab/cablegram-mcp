@@ -388,6 +388,13 @@ def render_read(rows: list[dict], *, requested: list[str],
     served, used = [], estimate_tokens(head)
     for index, (_, chunk) in enumerate(chunks):
         cost = estimate_tokens("\n".join(chunk))
+        if not served and used + cost > max_tokens:
+            # One is always served, whole: a cut body is the excerpt problem.
+            # But 800 asked and 1,777 served, with no line saying so, read as
+            # a budget that held. Found by the user-simulation review.
+            header.insert(1, f"BUDGET max_tokens={max_tokens} is under the first body "
+                             f"(about {used + cost} tokens); it is served whole rather "
+                             f"than cut.")
         if served and used + cost > max_tokens:
             deferred = [iid for iid, _ in chunks[index:]]
             header.insert(1, f"DEFERRED {' '.join(deferred)} -> would have exceeded "

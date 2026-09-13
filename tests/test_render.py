@@ -719,6 +719,24 @@ def test_the_tilde_is_explained_where_the_model_reads_it():
     assert "~ = not the publication time" in search, search.splitlines()[:6]
 
 
+def test_a_read_whose_first_body_exceeds_the_budget_says_so():
+    """One body is always served whole — a cut body is the excerpt problem —
+    but max_tokens=800 came back as 1,777 tokens with no line saying so,
+    which read as a budget that held. Found by the user-simulation review.
+    The reply now says the budget was under the first body and that it was
+    served whole; DEFERRED for the rest is unchanged."""
+    from cablegram.render import estimate_tokens
+    big = {**ROW, "id": "a" * 12, "body": "word " * 1500, "body_src": "content:encoded",
+           "sources": "n8n"}
+    small = {**ROW, "id": "b" * 12, "body": "short", "body_src": "description", "sources": "n8n"}
+    out = render_read([big, small], requested=["a" * 12, "b" * 12], max_tokens=300)
+    assert re.search(r"^BUDGET max_tokens=300 is under the first body \(about \d+ tokens\)", out, re.M), out.splitlines()[:4]
+    assert "word word word" in out, "the first body is still served whole"
+    assert "DEFERRED " + "b" * 12 in out, out.splitlines()[:4]
+    fits = render_read([small], requested=["b" * 12], max_tokens=300)
+    assert "BUDGET" not in fits
+
+
 def _many(n: int, source: str = "hn") -> list[dict]:
     """Rows as the query hands them over: newest first within a source. The
     renderer trusts that order — the trim keeps the first N — so a fixture
