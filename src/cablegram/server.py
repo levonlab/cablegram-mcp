@@ -689,7 +689,7 @@ def build(rows_from=None) -> MCPServer:
             "The query is ONE exact phrase, matched as a substring of the headline or "
             "of the stored body; a row whose headline does not carry it matched on "
             "the body and is marked (in body). "
-            "'Claude Code' finds headlines containing those two words in that order "
+            "'Claude Code' finds dispatches whose headline or stored body carries those two words in that order "
             "and nothing else: measured on what Hacker News serves (about 35 hours), "
             "'Claude Code' 10, "
             "'Anthropic Claude' 0, 'GPT 5' 0 and 'GPT-5' 1. To find headlines that "

@@ -710,9 +710,7 @@ def search_items(
         # Without this the renderer falls back to the number shown, so a source
         # holding 437 matches printed 3/3 — not an undeclared cut but a denied
         # one, asserting completeness in the tool built to prevent exactly that.
-        f"       COUNT(*) OVER (PARTITION BY s.source) AS source_total,"
-        f"       ROW_NUMBER() OVER (PARTITION BY s.source ORDER BY s.published DESC)"
-        f"           AS rank_in_source"
+        f"       COUNT(*) OVER (PARTITION BY s.source) AS source_total"
         f" FROM sighting s JOIN item i ON i.id = s.item_id"
         # via='feed' only, exactly as latest_items does. A Telegram post makes
         # two sightings of one story — the post, and the article it linked —
@@ -727,12 +725,24 @@ def search_items(
         args,
     ).fetchall()
 
+    # Headline hits first, then newest. With bodies searched, "newest kept"
+    # alone filled the cut with passing mentions: openai, "model", ten years,
+    # limit 25 — 18 of the 25 shown matched in the body while 79 headline
+    # hits sat under the CUT. Measured 2026-09-13. A headline that carries
+    # the phrase is about it; a body that does mentions it. Whitespace in
+    # the title is folded the way the listing prints it, so a phrase split
+    # by a newline is not marked as found only in the body.
     needle = query.casefold()
-    out = []
+    ranked = []
     for r in rows:
-        if r["rank_in_source"] > limit_per_source:
-            continue
         row = dict(r)
-        row["in_body"] = needle not in (row["title"] or "").casefold()
-        out.append(row)
+        row["in_body"] = needle not in " ".join((row["title"] or "").split()).casefold()
+        ranked.append(row)
+    ranked.sort(key=lambda r: r["published"], reverse=True)
+    ranked.sort(key=lambda r: (r["source"], r["in_body"]))
+    out, kept = [], {}
+    for row in ranked:
+        kept[row["source"]] = kept.get(row["source"], 0) + 1
+        if kept[row["source"]] <= limit_per_source:
+            out.append(row)
     return out, engine

@@ -246,7 +246,7 @@ import re
 # (three leading spaces).
 _ITEM = re.compile(r"^~?\S+ \d{2}:\d{2} \S", re.M)
 _BLOCK = re.compile(r"^## (\S+) .*? (\d+)/(\d+)\s*$", re.M)
-_CUT = re.compile(r"^CUT\s+(.*?)\s\s+\(newest kept\)\s*$", re.M)
+_CUT = re.compile(r"^CUT\s+(.*?)\s\s+\((?:newest kept|headline hits first, then newest)\)\s*$", re.M)
 _PAIR = re.compile(r"(\S+)=(\d+)/(\d+)")
 _ALLOWANCE = re.compile(r"at most (\d+) per source")
 # Claims of ABSENCE before a date. The correct sentence in that block says the

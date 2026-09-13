@@ -474,7 +474,7 @@ def render_search(
                         f"tag or language. NOTHING WAS SEARCHED for it. Call "
                         f"wire_sources for the catalogue.")
         if cut:
-            head.append("CUT   " + "  ".join(cut) + "   (newest kept)")
+            head.append("CUT   " + "  ".join(cut) + "   (headline hits first, then newest)")
         head += [
             # The one fact left of a nine-line COVER block. The floor is a
             # property of the feeds and reading it as a statement about the

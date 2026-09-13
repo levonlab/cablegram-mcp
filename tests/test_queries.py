@@ -434,3 +434,29 @@ def test_search_finds_a_phrase_that_is_only_in_the_body_and_says_so(db):
     rows = search_items(db, "智谱", since=since, sources=["ai_newz"])
     assert [(r["title"], r["in_body"]) for r in rows] == [("Про погоду", True)], rows
 
+
+def test_a_search_cut_keeps_headline_hits_before_body_mentions(db):
+    """With bodies searched, "newest kept" alone filled the cut with passing
+    mentions: openai, "model", ten years, limit 25 — 18 of the 25 shown
+    matched in the body while 79 headline hits sat under the CUT. Measured
+    2026-09-13. A headline that carries the phrase is about it; a body that
+    does mentions it. Headline hits come first, newest within each group."""
+    store_entries(db, by_id("openai"), [
+        Entry("A note on safety", "https://openai.example/a", NOW - timedelta(hours=1),
+              "The model card ships with it.", "description"),
+        Entry("A new model for code", "https://openai.example/b", NOW - timedelta(hours=2),
+              "Nothing else.", "description"),
+        Entry("Quarterly update", "https://openai.example/c", NOW - timedelta(hours=3),
+              "We trained a model.", "description"),
+        Entry("Model spec, revised", "https://openai.example/d", NOW - timedelta(hours=4),
+              "Text.", "description"),
+    ], fetched_at=iso(NOW))
+    since = iso(NOW - timedelta(days=1))
+    rows = search_items(db, "model", since=since, sources=["openai"], limit_per_source=2)
+    assert [(r["title"], r["in_body"]) for r in rows] == [
+        ("A new model for code", False), ("Model spec, revised", False)], rows
+    rows = search_items(db, "model", since=since, sources=["openai"])
+    assert [r["title"] for r in rows] == ["A new model for code", "Model spec, revised",
+                                          "A note on safety", "Quarterly update"], rows
+    assert all(r["source_total"] == 4 for r in rows), "the CUT still counts every hit"
+

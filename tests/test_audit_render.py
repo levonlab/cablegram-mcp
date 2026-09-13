@@ -28,7 +28,7 @@ _ITEM = re.compile(r"^~?\S+ \d{2}:\d{2} \S", re.M)
 _CROSS_ENTRY = re.compile(r"^(?:CROSS |      )(\w+) x(\d+)$", re.M)
 _CROSS_MORE = re.compile(r"^\s+(\d+) shown of (\d+) repeated stories", re.M)
 _BLOCK = re.compile(r"^## (\S+) .*? (\d+)/(\d+)\s*$", re.M)
-_CUT = re.compile(r"^CUT\s+(.*?)\s\s+\(newest kept\)\s*$", re.M)
+_CUT = re.compile(r"^CUT\s+(.*?)\s\s+\((?:newest kept|headline hits first, then newest)\)\s*$", re.M)
 _PAIR = re.compile(r"(\S+)=(\d+)/(\d+)")
 
 
