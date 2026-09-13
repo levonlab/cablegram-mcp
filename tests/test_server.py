@@ -905,4 +905,8 @@ async def test_every_parameter_carries_a_description_in_the_schema(server):
             assert prop.get("description", "").strip(), f"{name}.{param} has no description"
     search = tools["wire_search"].description
     assert "wire_latest" in search and "wire_read" in search and "wire_sources" in search
+    # And where a body hit is even possible: 91% of Hacker News items and all
+    # of the Hugging Face blog's have no stored text (measured 2026-09-13),
+    # so "searches the stored text of every source" needed the exception.
+    assert "Hacker News holds a body for one item in ten" in search
 
