@@ -706,6 +706,19 @@ def test_a_body_at_the_cap_is_marked_cut_where_its_length_is_printed():
     assert f"[content:encoded {MAX_FIELD}c cut]" in listing, listing
 
 
+def test_the_tilde_is_explained_where_the_model_reads_it():
+    """A post OpenAI stamped for tomorrow came out as ~17:32, ~17:34, ~17:38
+    across three calls, and nothing the model could see said what ~ meant;
+    the briefing prompt said "dated as printed", so the hour of the call
+    went into the briefing as the hour of publication. Found by the
+    user-simulation review. The COLS line of both listings now says it."""
+    latest = render_latest([{**ROW, "id": "a" * 12, "date_exact": 0, "source": "openai"}],
+                           since="s", until="u", down={}, sources_total=1)
+    assert "~ = not the publication time" in latest, latest.splitlines()[:3]
+    search = render_search([], query="q", since="s", days=7, reach={"hn": "2026-09-12"})
+    assert "~ = not the publication time" in search, search.splitlines()[:6]
+
+
 def _many(n: int, source: str = "hn") -> list[dict]:
     """Rows as the query hands them over: newest first within a source. The
     renderer trusts that order — the trim keeps the first N — so a fixture

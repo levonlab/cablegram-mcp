@@ -252,7 +252,8 @@ def render_latest(
         cut = [f"{k}={s}/{t}" for k, (s, t) in sorted(cuts.items()) if s < t]
         if cut:
             head.append("CUT   " + "  ".join(cut) + "   (newest kept)")
-        head.append("COLS  id hh:mm title    times UTC | body: wire_read(ids=[...])")
+        head.append("COLS  id hh:mm title    times UTC | ~ = not the publication time "
+                    "| body: wire_read(ids=[...])")
         head.append("---")
         return head
 
@@ -502,7 +503,8 @@ def render_search(
                         'feeds serve today",')
             head.append("      which is not the same as nobody discussing it.")
         head += [
-            "COLS  id hh:mm title    (in body) = the phrase is in the stored text, not the headline",
+            "COLS  id hh:mm title    (in body) = the phrase is in the stored text, not the "
+            "headline | ~ = not the publication time",
             "---",
         ]
         return head

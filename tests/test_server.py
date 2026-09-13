@@ -875,7 +875,7 @@ async def test_the_server_offers_a_briefing_and_a_check_as_prompts(server):
     got = await server.get_prompt("briefing", {"hours": "6", "sources": "lab, early"})
     text = text_of(got)
     assert "wire_latest(hours=6, sources=['lab', 'early'])" in text, text
-    for word in ("DOWN", "SILENT", "CEILING", "CUT", "wire_read", "coverage"):
+    for word in ("DOWN", "SILENT", "CEILING", "CUT", "wire_read", "coverage", "marked ~"):
         assert word in text, word
 
     got = await server.get_prompt("briefing", {})
