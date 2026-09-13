@@ -137,6 +137,12 @@ CREATE TRIGGER IF NOT EXISTS sighting_au AFTER UPDATE ON sighting BEGIN
     INSERT INTO sighting_fts(rowid, title) VALUES (new.rowid, new.title);
 END;
 
+-- Named item_fts_*: the first version reused item_ai/item_ad/item_au, and the
+-- delete one collided with the cascade trigger below of the same name. IF NOT
+-- EXISTS kept the first and dropped the second in silence, so sqlite_master
+-- held six triggers instead of seven and deleting an item left its sightings.
+-- Found by the 2026-09-13 review; latent, since nothing deletes items in a
+-- per-call database, and a test now counts the triggers.
 CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(
     body,
     content = 'item',
@@ -144,15 +150,15 @@ CREATE VIRTUAL TABLE IF NOT EXISTS item_fts USING fts5(
     tokenize = 'trigram'
 );
 
-CREATE TRIGGER IF NOT EXISTS item_ai AFTER INSERT ON item BEGIN
+CREATE TRIGGER IF NOT EXISTS item_fts_ai AFTER INSERT ON item BEGIN
     INSERT INTO item_fts(rowid, body) VALUES (new.rowid, new.body);
 END;
 
-CREATE TRIGGER IF NOT EXISTS item_ad AFTER DELETE ON item BEGIN
+CREATE TRIGGER IF NOT EXISTS item_fts_ad AFTER DELETE ON item BEGIN
     INSERT INTO item_fts(item_fts, rowid, body) VALUES ('delete', old.rowid, old.body);
 END;
 
-CREATE TRIGGER IF NOT EXISTS item_au AFTER UPDATE ON item BEGIN
+CREATE TRIGGER IF NOT EXISTS item_fts_au AFTER UPDATE ON item BEGIN
     INSERT INTO item_fts(item_fts, rowid, body) VALUES ('delete', old.rowid, old.body);
     INSERT INTO item_fts(rowid, body) VALUES (new.rowid, new.body);
 END;

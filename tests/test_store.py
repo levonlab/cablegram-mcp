@@ -784,3 +784,25 @@ def test_a_question_mark_at_the_end_of_a_query_is_not_part_of_the_term(db):
     node, _ = search_items(db, "Node.js", since=since)
     assert [r["title"] for r in node] == ["Node.js 30 released"]
 
+
+def test_every_trigger_the_schema_declares_exists_and_deleting_an_item_cascades(db):
+    """The body index's triggers were named item_ai/item_ad/item_au, and the
+    delete one collided with the cascade trigger of the same name declared
+    further down. CREATE TRIGGER IF NOT EXISTS kept the first and dropped the
+    second in silence: six triggers where the file declares seven, and
+    deleting an item left its sightings behind. Latent — nothing deletes an
+    item in a per-call database — and found by the 2026-09-13 review."""
+    import re
+    from pathlib import Path
+    declared = re.findall(r"CREATE TRIGGER IF NOT EXISTS (\w+)",
+                          (Path(__file__).parent.parent / "src/cablegram/schema.py").read_text())
+    assert len(declared) == len(set(declared)), f"a trigger name repeats: {declared}"
+    present = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='trigger'")}
+    assert present == set(declared), (sorted(present), sorted(declared))
+    store_entries(db, by_id("hn"), [Entry("Gone soon", "https://hn.example/gone", PUB, "b", "description")],
+                  fetched_at=NOW)
+    assert db.execute("SELECT COUNT(*) FROM sighting").fetchone()[0] == 1
+    with db:
+        db.execute("DELETE FROM item")
+    assert db.execute("SELECT COUNT(*) FROM sighting").fetchone()[0] == 0, "the cascade is dead"
+
