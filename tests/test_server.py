@@ -888,3 +888,19 @@ async def test_the_server_offers_a_briefing_and_a_check_as_prompts(server):
     for word in ("DOWN", "CEILING", "COVER", "wire_read", "not reach"):
         assert word in text, word
 
+
+@pytest.mark.anyio
+async def test_every_parameter_carries_a_description_in_the_schema(server):
+    """Glama's TDQS scored the v0.1.1 tools with "schema coverage 0%": no
+    parameter carried a description in the inputSchema, so every meaning
+    lived in the prose and the agent had to find it there. wire_search took
+    2/5 on parameters for it. The schema now says what each one is, and a
+    tool's description names its siblings so an agent can choose."""
+    tools = {t.name: t for t in await server.list_tools()}
+    assert set(tools) == {"wire_latest", "wire_read", "wire_search", "wire_sources"}
+    for name, tool in tools.items():
+        for param, prop in tool.input_schema.get("properties", {}).items():
+            assert prop.get("description", "").strip(), f"{name}.{param} has no description"
+    search = tools["wire_search"].description
+    assert "wire_latest" in search and "wire_read" in search and "wire_sources" in search
+

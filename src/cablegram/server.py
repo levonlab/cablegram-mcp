@@ -17,6 +17,7 @@ watching.
 from __future__ import annotations
 
 import asyncio
+from typing import Annotated
 import re
 from collections import Counter
 from contextlib import closing
@@ -26,6 +27,8 @@ from math import ceil
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
+
+from pydantic import Field
 
 from . import __version__
 from .schema import connect
@@ -500,12 +503,22 @@ def build(rows_from=None) -> MCPServer:
         annotations=READ_ONLY,
     )
     def wire_latest(
-        since: str | None = None,
-        hours: int = 24,
-        sources: list[str] | None = None,
-        detail: str = "headlines",
-        limit_per_source: int | None = None,
-        max_tokens: int = 12000,
+        since: Annotated[str | None, Field(description=(
+            "Window start, ISO-8601 UTC: 2026-08-30 or 2026-08-30T09:00:00Z. Replaces "
+            "`hours` when both are given. A future date is refused."))] = None,
+        hours: Annotated[int, Field(description=(
+            "Window length back from now, 1 or more. Ignored when `since` is given."))] = 24,
+        sources: Annotated[list[str] | None, Field(description=(
+            "Ids, tags and languages in one list, e.g. ['weights', 'hn', 'zh']; the tag list is in the description. Default: every source, which includes the six Telegram channels and costs 20-45 s."))] = None,
+        detail: Annotated[str, Field(description=(
+            "'headlines' (ids and titles) or 'full' (each stored body inline, 5 per source "
+            "unless limit_per_source says otherwise)."))] = "headlines",
+        limit_per_source: Annotated[int | None, Field(description=(
+            "Rows kept per source, newest first, 1 or more; a CUT line says when more "
+            "exist. Default 25, or 5 with detail='full'."))] = None,
+        max_tokens: Annotated[int, Field(description=(
+            "Reply budget. Over it the per-source allowance drops and a BUDGET line says "
+            "to what, so no source vanishes from the tail."))] = 12000,
     ) -> str:
         """since: ISO-8601 UTC, wins over hours. sources: ids, tags or languages."""
         until = _now()
@@ -612,7 +625,14 @@ def build(rows_from=None) -> MCPServer:
         ),
         annotations=READ_ONLY,
     )
-    def wire_read(ids: list[str], max_tokens: int = 12000) -> str:
+    def wire_read(
+        ids: Annotated[list[str], Field(description=(
+            "Ids from a wire_latest or wire_search reply in this session; one that does "
+            "not resolve is named on an UNKNOWN line. A repeated id is read once."))],
+        max_tokens: Annotated[int, Field(description=(
+            "Reply budget. A body that does not fit is named on a DEFERRED line for a "
+            "second call rather than dropped."))] = 12000,
+    ) -> str:
         # Nothing is kept between runs, so an id resolves only against what this
         # process has already fetched. Anything else is named on the UNKNOWN
         # line, which tells the model how to get a current one.
@@ -627,6 +647,8 @@ def build(rows_from=None) -> MCPServer:
         title="Search the sources",
         description=(
             "Search the headlines and the stored text of every source that carried a story.\n"
+            "For everything a window holds, with no term, use wire_latest; for the text of "
+            "a hit, wire_read; wire_sources is the catalogue and its health, not content.\n"
             "WHAT IS BEING SEARCHED: this call fetches the sources and searches what "
             "they serve right now, then throws it away. There is no archive and no "
             "history — coverage is whatever the feeds expose today, and it is wildly "
@@ -670,11 +692,21 @@ def build(rows_from=None) -> MCPServer:
         annotations=READ_ONLY,
     )
     def wire_search(
-        query: str,
-        days: int = 7,
-        sources: list[str] | None = None,
-        limit_per_source: int = 25,
-        max_tokens: int = 8000,
+        query: Annotated[str, Field(description=(
+            "ONE exact phrase, matched as a substring of the headline or the stored body. "
+            "No operators: OR, AND and NOT are refused; search each term in its own call. "
+            "Under three characters a substring scan runs instead of the index."))],
+        days: Annotated[int, Field(description=(
+            "Window length back from now in days, 1 or more. What each source can reach "
+            "is on the COVER line and is often shorter."))] = 7,
+        sources: Annotated[list[str] | None, Field(description=(
+            "Ids, tags and languages in one list, e.g. ['weights', 'hn', 'zh']; the tag list is in the description. Default: every source, which includes the six Telegram channels and costs 20-45 s."))] = None,
+        limit_per_source: Annotated[int, Field(description=(
+            "Hits kept per source, newest first, 1 or more; the CUT line says how many "
+            "each source really held."))] = 25,
+        max_tokens: Annotated[int, Field(description=(
+            "Reply budget. Over it rows are trimmed evenly across sources and a BUDGET "
+            "line says so."))] = 8000,
     ) -> str:
         if not bare_query(query):
             # And through the same door the quotes and stars come off: "?",
