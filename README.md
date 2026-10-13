@@ -305,5 +305,5 @@ personal research — respect each source's terms of service.
 
 ## Licence
 
-MIT. Built by [Levon Gabrielyan](https://github.com/levongabrielyan).
+MIT. Built by [Levon Lab](https://github.com/levonlab).
 <!-- mcp-name: io.github.levongabrielyan/cablegram-mcp -->
