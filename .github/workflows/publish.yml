@@ -10,6 +10,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # The pypi environment asks for an approval and only accepts v* tags, so a
+    # run started by a tag waits under Actions until "Review deployments" is
+    # approved. A waiting run is not a failed one.
     environment: pypi
     permissions:
       id-token: write  # this is what trusted publishing checks
