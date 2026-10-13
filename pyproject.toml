@@ -29,10 +29,10 @@ cablegram = "cablegram.cli:main"
 cablegram-mcp = "cablegram.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/levongabrielyan/cablegram-mcp"
-Repository = "https://github.com/levongabrielyan/cablegram-mcp"
-Issues = "https://github.com/levongabrielyan/cablegram-mcp/issues"
-Documentation = "https://github.com/levongabrielyan/cablegram-mcp/blob/main/docs/design.md"
+Homepage = "https://github.com/levonlab/cablegram-mcp"
+Repository = "https://github.com/levonlab/cablegram-mcp"
+Issues = "https://github.com/levonlab/cablegram-mcp/issues"
+Documentation = "https://github.com/levonlab/cablegram-mcp/blob/main/docs/design.md"
 
 [dependency-groups]
 dev = ["pytest>=8.0"]

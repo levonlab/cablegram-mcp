@@ -123,7 +123,7 @@ claude mcp add cablegram --scope user -- uvx cablegram-mcp serve
 Or from a checkout, if you would rather read it first:
 
 ```bash
-git clone https://github.com/levongabrielyan/cablegram-mcp
+git clone https://github.com/levonlab/cablegram-mcp
 cd cablegram-mcp && uv sync
 claude mcp add cablegram --scope user -- \
   /path/to/cablegram-mcp/.venv/bin/python -m cablegram.cli serve
@@ -285,7 +285,7 @@ only because it runs on push and nobody had pushed.
 
 ## Design
 
-[`docs/design.md`](https://github.com/levongabrielyan/cablegram-mcp/blob/main/docs/design.md)
+[`docs/design.md`](https://github.com/levonlab/cablegram-mcp/blob/main/docs/design.md)
 is the reasoning rather than the API: why the identity of an item is a pure
 function of its URL and what breaks in each direction when that is wrong, why a
 failure is a value rather than an exception, why the full-text index needs a
